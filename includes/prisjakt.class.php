@@ -78,7 +78,7 @@
                     }
                 }
             } else {
-                // TODO: expertsök
+                // TODO: expert search?
             }
             return $products;
         }
