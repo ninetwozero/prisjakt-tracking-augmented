@@ -12,9 +12,9 @@
             $searchUrl = $_POST['prisjakt_search_url'] ?? '';
             if ($searchUrl) {
                 $products = $prisjakt->getProductsInSearch($searchUrl);
-                foreach ($products as $product) {
-                    $out[] = 'Adding alert for ' . $product->name . '...';
-                    $prisjakt->addAlertForProduct($product->id);
+                foreach ($products as $productId => $productName) {
+                    $out[] = 'Adding alert for ' . $productName. '...';
+                    $prisjakt->addAlertForProduct($productId);
                 }
             } else {
                 $out[] = 'No search URL provided';

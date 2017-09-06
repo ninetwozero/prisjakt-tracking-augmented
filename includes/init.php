@@ -6,5 +6,8 @@
     require $_SERVER['DOCUMENT_ROOT'] . '/includes/functions.php';
     require $_SERVER['DOCUMENT_ROOT'] . '/includes/prisjakt.class.php';
 
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
+    if ($_SERVER['SERVER_NAME'] === 'prisjakt.local') {
+        error_reporting(E_ALL);
+        ini_set('display_errors', 1);
+        ini_set('display_startup_errors', 1);
+    }

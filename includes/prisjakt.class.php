@@ -50,37 +50,9 @@
         }
 
         public function getProductsInSearch($searchUrl) {
-            $products = [];
-            if (strpos($searchUrl, 'expert.php') === false) {
-                // Quick search
-                //https://www.prisjakt.nu/ajax/server.php
-                $searchString = substr($searchUrl, strrpos($searchUrl, '='));
-                $payload = [
-                    'class' => 'Search_Supersearch',
-                    'method' => 'search',
-                    'skip_login' => 1,
-                    'modes' => 'product,raw_sorted,raw',
-                    'limit' => 20,
-                    'q' => urldecode($searchString)
-                ];
-
-                $response = $this->client->get(PRISJAKT_API_URL, [
-                    'query' => $payload,
-                    'cookies' => $this->createCookieJar(),
-                    'headers' => $this->headers
-                ]);
-
-                $data = json_decode($response->getBody()->getContents());
-                if (!$data->error) {
-                    $searchResults = $data->message->product->items ?? [];
-                    if (count($searchResults) > 0) {
-                        $products = $searchResults;
-                    }
-                }
-            } else {
-                // TODO: expert search?
-            }
-            return $products;
+            return strpos($searchUrl, 'expert.php') !== false ?
+                $this->getProductsFromExpertSearch($searchUrl) :
+                $this->getProductsFromSimpleSearch($searchUrl);
         }
 
         public function addAlertForProduct($productId, $extras = []) {
@@ -117,5 +89,74 @@
                 'pass_hash' => $this->passwordHash,
             ], parse_url(PRISJAKT_API_URL)['host']);
 
+        }
+
+        private function getProductsFromExpertSearch($searchUrl) {
+            $products = [];
+
+            $responseHtml = $this->client->get($searchUrl)->getBody()->getContents();
+            $dom = new DOMDocument;
+            // Silence the warnings per https://stackoverflow.com/a/10482622/860212
+            $previousErrorFlag = libxml_use_internal_errors(true);
+            $dom->loadHTML($responseHtml);
+            libxml_use_internal_errors($previousErrorFlag);
+
+            $priceListDiv = $dom->getElementById('prislista');
+            foreach ($priceListDiv->getElementsByTagName('div') as $div) {
+                $productId = '';
+                $productName = '';
+                foreach ($div->getElementsByTagName('a') as $a) {
+                    if (preg_match('@^/(produkt|redirect)\.php@', $a->getAttribute('href'))) {
+                        $url = $a->getAttribute('href');
+                        if ($url[1] === 'p') {
+                            $productId = trim(substr($url, strrpos($url, '=') + 1));
+                        } else {
+                            if ($a->hasAttribute('title')) {
+                                if ($a->textContent) {
+                                    $productName = trim($a->textContent);
+                                }
+                            }
+                        }
+                    }
+
+                    if ($productId && $productName) {
+                        $products[$productId] = $productName;
+                        $productId = '';
+                        $productName = '';
+                    }
+                }
+            }
+            return $products;
+        }
+
+        private function getProductsFromSimpleSearch($searchUrl) {
+            $products = [];
+
+            $searchString = substr($searchUrl, strrpos($searchUrl, '='));
+            $payload = [
+                'class' => 'Search_Supersearch',
+                'method' => 'search',
+                'skip_login' => 1,
+                'modes' => 'product,raw_sorted,raw',
+                'limit' => 20,
+                'q' => urldecode($searchString)
+            ];
+
+            $response = $this->client->get(PRISJAKT_API_URL, [
+                'query' => $payload,
+                'cookies' => $this->createCookieJar(),
+                'headers' => $this->headers
+            ]);
+
+            $data = json_decode($response->getBody()->getContents());
+            if (!$data->error) {
+                $searchResults = $data->message->product->items ?? [];
+                if (count($searchResults) > 0) {
+                    $products = array_map(function ($product) {
+                        return [$product->id => $product->name];
+                    }, $searchResults);
+                }
+            }
+            return $products;
         }
     }
