@@ -152,9 +152,10 @@
             if (!$data->error) {
                 $searchResults = $data->message->product->items ?? [];
                 if (count($searchResults) > 0) {
-                    $products = array_map(function ($product) {
-                        return [$product->id => $product->name];
-                    }, $searchResults);
+                    foreach ($searchResults as $searchResult) {
+                        $products[$searchResult->id] = $searchResult->name;
+                        
+                    }
                 }
             }
             return $products;
