@@ -12,9 +12,15 @@
             $searchUrl = $_POST['prisjakt_search_url'] ?? '';
             if ($searchUrl) {
                 $products = $prisjakt->getProductsInSearch($searchUrl);
+
                 foreach ($products as $productId => $productName) {
-                    $out[] = 'Adding alert for ' . $productName. '...';
-                    $prisjakt->addAlertForProduct($productId);
+                    if ($_POST['submit'] === 'add') {
+                        $out[] = 'Adding alert for <b>' . $productName. '</b>...';
+                        $prisjakt->addAlertForProduct($productId);
+                    } else {
+                        $out[] = 'Removing alert for <b>' . $productName. '</b>...';
+                        $prisjakt->removeAlertForProduct($productId);
+                    }
                 }
             } else {
                 $out[] = 'No search URL provided';
@@ -130,7 +136,8 @@
                             <input name="prisjakt_search_url" type="url" placeholder="Ex. https://www.prisjakt.nu/#rparams=ss=NOCCO%20Focus" required>
                             <label>Prisjakt search URL</label>
                         </div>
-                        <button name="submit" class="mui-btn mui-btn--accent mui-btn--raised" type="submit">Add products</button>
+                        <button name="submit" class="mui-btn mui-btn--primary mui-btn--raised" type="submit" value="add">Track products</button>
+                        <button name="submit" class="mui-btn mui-btn--accent mui-btn--raised" type="submit" value="remove">Untrack products</button>
                     <?php } else { ?>
                         <div class="mui--text-title" style="margin-bottom: 8px">Sign in to Prisjakt</div>
                         <div class="mui-textfield mui-textfield--float-label">

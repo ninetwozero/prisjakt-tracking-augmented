@@ -83,6 +83,28 @@
             return false;
         }
 
+        public function removeAlertForProduct($productId) {
+            $payload = [
+                'alert_id' => '',
+                'user_id' => $this->userId,
+                'product_id' => $productId,
+                'class' => 'C_Alert',
+                'method' => 'delete_alert'
+            ];
+
+            $response = $this->client->post(PRISJAKT_API_URL, [
+                'form_params' => $payload,
+                'cookies' => $this->createCookieJar(),
+                'headers' => $this->headers
+            ]);
+
+            $data = json_decode($response->getBody()->getContents());
+            if (!$data->error) {
+                return $data->alert ?? false;
+            }
+            return false;
+        }
+
         private function createCookieJar() {
             return GuzzleHttp\Cookie\CookieJar::fromArray([
                 'member_id' => $this->userId,
