@@ -156,7 +156,6 @@
 					}
 				}
 
-
 				if ($productId && $productName) {
 					$products[$productId] = [ 'name' => $productName, 'price' => $productPrice ];
 					$productId = '';
