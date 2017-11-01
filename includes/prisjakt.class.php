@@ -62,7 +62,7 @@
                 'product_id' => $productId,
                 'alert_by_email' => 1,
                 'alert_by_push' => 1,
-                'alert_type' => 'product',
+                'alert_type' => 'product_advanced',
                 'price_threshold' => $extras['price_threshold'] ?? 0,
                 'liked_store_preference' => ($extras['only_liked_stores'] ?? false) ? 1 : 0,
                 'store_grade_threshold' => $extras['storeMinRating'] ?? 0,
@@ -124,14 +124,22 @@
             libxml_use_internal_errors($previousErrorFlag);
 
             $priceListDiv = $dom->getElementById('prislista');
-            foreach ($priceListDiv->getElementsByTagName('div') as $div) {
+            foreach ($priceListDiv->getElementsByTagName('tr') as $productRow) {
                 $productId = '';
                 $productName = '';
-                foreach ($div->getElementsByTagName('a') as $a) {
+				$productPrice = 0;
+
+				$productRowColumns = $productRow->getElementsByTagName('td');
+				if ($productRowColumns->length === 0) {
+					continue;
+				}
+
+				foreach ($productRowColumns->item(0)->getElementsByTagName('a') as $a) {
                     if (preg_match('@^/(produkt|redirect)\.php@', $a->getAttribute('href'))) {
                         $url = $a->getAttribute('href');
                         if ($url[1] === 'p') {
                             $productId = trim(substr($url, strrpos($url, '=') + 1));
+
                         } else {
                             if ($a->hasAttribute('title')) {
                                 if ($a->textContent) {
@@ -140,13 +148,21 @@
                             }
                         }
                     }
-
-                    if ($productId && $productName) {
-                        $products[$productId] = $productName;
-                        $productId = '';
-                        $productName = '';
-                    }
                 }
+
+				foreach ($productRowColumns->item(1)->getElementsByTagName('span') as $span) {
+					if ($span->getAttribute('class') === 'price') {
+						$productPrice = floatval($span->textContent);
+					}
+				}
+
+
+				if ($productId && $productName) {
+					$products[$productId] = [ 'name' => $productName, 'price' => $productPrice ];
+					$productId = '';
+					$productName = '';
+					$productPrice = 0;
+				}
             }
             return $products;
         }
@@ -175,8 +191,10 @@
                 $searchResults = $data->message->product->items ?? [];
                 if (count($searchResults) > 0) {
                     foreach ($searchResults as $searchResult) {
-                        $products[$searchResult->id] = $searchResult->name;
-                        
+                        $products[$searchResult->id] = [
+							'name' => $searchResult->name,
+							'price' => $searchResult->price->regular
+						];
                     }
                 }
             }

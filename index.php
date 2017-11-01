@@ -10,15 +10,17 @@
     if (isset($_POST['submit'])) {
         if (hasApiCredentials()) {
             $searchUrl = $_POST['prisjakt_search_url'] ?? '';
+			$priceThreshold = floatval($_POST['prisjakt_price_threshold'] ?? 0);
+
             if ($searchUrl) {
                 $products = $prisjakt->getProductsInSearch($searchUrl);
-
-                foreach ($products as $productId => $productName) {
+                foreach ($products as $productId => $product) {
                     if ($_POST['submit'] === 'add') {
-                        $out[] = 'Adding alert for <b>' . $productName. '</b>...';
-                        $prisjakt->addAlertForProduct($productId);
+						$price = ceil(floatval($product['price'] * (1 - $priceThreshold)));
+                        $out[] = 'Adding alert for <b>' . $product['name']. '</b> (price set to ' . $price . ')...';
+                        $prisjakt->addAlertForProduct($productId, [ 'price_threshold' => floatval(( 1 - $priceThreshold) * $product['price']) ]);
                     } else {
-                        $out[] = 'Removing alert for <b>' . $productName. '</b>...';
+                        $out[] = 'Removing alert for <b>' . $product['name']. '</b>...';
                         $prisjakt->removeAlertForProduct($productId);
                     }
                 }
@@ -50,6 +52,8 @@
         header('Location: ' . $_SERVER['PHP_SELF']);
         exit;
     }
+
+	$discountSteps = [5, 10, 25, 50, 75, 90];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -136,6 +140,15 @@
                             <input name="prisjakt_search_url" type="url" placeholder="Ex. https://www.prisjakt.nu/#rparams=ss=NOCCO%20Focus" required>
                             <label>Prisjakt search URL</label>
                         </div>
+						<div class="mui-select" style="width: 240px">
+							<select name="prisjakt_price_threshold">
+								<option value="0" selected>Any discount</option>
+								<?php foreach ($discountSteps as $step){?>
+								<option value="<?= $step / 100 ?>"><?= $step ?>%</option>
+								<? } ?>
+							</select>
+							<label>How much discount are you waiting for?</label>
+						</div>
                         <button name="submit" class="mui-btn mui-btn--primary mui-btn--raised" type="submit" value="add">Track products</button>
                         <button name="submit" class="mui-btn mui-btn--accent mui-btn--raised" type="submit" value="remove">Untrack products</button>
                     <?php } else { ?>
